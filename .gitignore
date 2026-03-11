@@ -1,0 +1,11 @@
+.DS_Store
+.env
+.env
+credentials.json
+token.json
+chroma_db/
+.venv/
+__pycache__/
+*.pyc
+.sync_state.json
+config.local.yaml

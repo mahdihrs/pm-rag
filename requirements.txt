@@ -1,0 +1,24 @@
+# Core RAG
+langchain==0.3.14
+langchain-community==0.3.14
+langchain-anthropic==0.3.4
+chromadb==0.5.23
+sentence-transformers==3.3.1
+
+# Document parsers
+pypdf==5.1.0
+python-docx==1.1.2
+openpyxl==3.1.5
+markdown==3.7
+
+# Google Drive
+google-auth==2.37.0
+google-auth-oauthlib==1.2.1
+google-api-python-client==2.155.0
+
+# Utilities
+python-dotenv==1.0.1
+pyyaml==6.0.2
+rich==13.9.4
+tqdm==4.67.1
+tiktoken==0.8.0
