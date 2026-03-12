@@ -27,6 +27,7 @@ import os
 import re
 import sys
 import argparse
+import threading
 from pathlib import Path
 from typing import List, Tuple, Optional
 
@@ -76,20 +77,19 @@ def run_sync(config: dict):
 
 # ─── Vector Store ─────────────────────────────────────────────────────────────
 
-def get_collection(config: dict):
+def get_collection_fast(config: dict):
     import chromadb
-    from chromadb.utils import embedding_functions
 
     db_path = config["vector_store"]["path"]
     if not Path(db_path).exists():
         console.print("[red]❌ Vector store not found. Run [bold]python ingest.py[/bold] first.[/red]")
         sys.exit(1)
 
-    ef = embedding_functions.SentenceTransformerEmbeddingFunction(
-        model_name=config["embeddings"]["model"]
+    client = chromadb.PersistentClient(
+        path=db_path,
+        settings=chromadb.config.Settings(anonymized_telemetry=False)
     )
-    client = chromadb.PersistentClient(path=db_path)
-    return client.get_collection(name="pm_docs", embedding_function=ef)
+    return client, client.get_collection(name="pm_docs")
 
 # ─── Semantic Search ──────────────────────────────────────────────────────────
 
@@ -180,15 +180,41 @@ def keyword_search(
     top_k: int = 10,
 ) -> List[Tuple[str, str, float, str]]:
     """
-    Brute-force regex scan across all indexed chunks.
+    Brute-force regex scan across retrieved chunks.
+    Optimized by pre-filtering with ChromaDB natively.
     Returns list of (content, source, score, match_type).
     """
     pattern = build_keyword_pattern(query)
+    terms = [t.strip() for t in query.split() if t.strip()]
 
-    # Fetch all chunks from the DB
-    all_data = collection.get(include=["documents", "metadatas"])
-    docs = all_data["documents"]
-    metas = all_data["metadatas"]
+    # ── Pre-filter with ChromaDB ──
+    # ChromaDB's $contains is case-sensitive. We check common variations.
+    and_clauses = []
+    for term in terms:
+        t_lower = term.lower()
+        term_or = {"$or": [
+            {"$contains": t_lower},
+            {"$contains": t_lower.capitalize()},
+            {"$contains": t_lower.upper()},
+            {"$contains": term.title()}
+        ]}
+        and_clauses.append(term_or)
+
+    where_doc = None
+    if len(and_clauses) > 1:
+        where_doc = {"$and": and_clauses}
+    elif len(and_clauses) == 1:
+        where_doc = and_clauses[0]
+
+    fetch_args: dict[str, object] = {"include": ["documents", "metadatas"]}
+    if where_doc:
+        fetch_args["where_document"] = where_doc
+
+    # Fetch only chunks that contain all search terms natively
+    all_data = collection.get(**fetch_args)
+    
+    docs = all_data.get("documents", [])
+    metas = all_data.get("metadatas", [])
 
     matches = []
     for doc, meta in zip(docs, metas):
@@ -329,7 +355,7 @@ def ask_anthropic(prompt: str, config: dict) -> str:
         temperature=llm.get("temperature", 0),
         messages=[{"role": "user", "content": prompt}],
     )
-    return resp.content[0].text
+    return getattr(resp.content[0], "text", str(resp.content[0]))
 
 def ask_openai(prompt: str, config: dict) -> str:
     from openai import OpenAI
@@ -340,7 +366,7 @@ def ask_openai(prompt: str, config: dict) -> str:
         temperature=llm.get("temperature", 0),
         messages=[{"role": "user", "content": prompt}],
     )
-    return resp.choices[0].message.content
+    return resp.choices[0].message.content or ""
 
 def ask_ollama(prompt: str, config: dict) -> str:
     import requests
@@ -494,9 +520,26 @@ def main():
         run_sync(config)
         console.print()
 
-    collection = get_collection(config)
+    client, collection = get_collection_fast(config)
     doc_count = collection.count()
     mode = args.mode
+
+    ef_loaded_event = threading.Event()
+
+    def load_ef_bg():
+        nonlocal collection
+        try:
+            from chromadb.utils import embedding_functions
+            ef = embedding_functions.SentenceTransformerEmbeddingFunction( # type: ignore
+                model_name=config["embeddings"]["model"]
+            )
+            collection = client.get_collection(name="pm_docs", embedding_function=ef)
+        except Exception:
+            pass
+        finally:
+            ef_loaded_event.set()
+
+    threading.Thread(target=load_ef_bg, daemon=True).start()
 
     show_sync_status()
     console.print(
@@ -508,6 +551,12 @@ def main():
     )
 
     def process_question(question: str, current_mode: str):
+        nonlocal collection
+        if current_mode in ("hybrid", "semantic"):
+            if not ef_loaded_event.is_set():
+                with console.status("[cyan]Warming up embedding model (first run)...[/cyan]"):
+                    ef_loaded_event.wait()
+
         with console.status(f"[cyan]Searching ({current_mode})...[/cyan]"):
             if current_mode == "semantic":
                 raw = semantic_search(question, collection, top_k)
@@ -562,7 +611,11 @@ def main():
         # ── /sync command ──
         if question.lower() == "/sync":
             run_sync(config)
-            collection = get_collection(config)
+            ef = getattr(collection, "_embedding_function", None)
+            if ef:
+                collection = client.get_collection(name="pm_docs", embedding_function=ef)
+            else:
+                collection = client.get_collection(name="pm_docs")
             console.print(f"[dim]📚 Now {collection.count()} chunks indexed[/dim]\n")
             continue
 
