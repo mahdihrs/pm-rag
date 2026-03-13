@@ -36,6 +36,7 @@ python ingest.py
 ```bash
 python query.py
 ```
+*(The embedding model loads in the background so you can start typing instantly.)*
 
 ---
 
@@ -47,6 +48,25 @@ You: Summarize the current status of Project Atlas
 You: What did we decide about the pricing model in last month's MoM?
 You: List all projects I'm currently working on
 You: What are the risks mentioned across my project docs?
+```
+
+---
+
+## Interactive Commands & Search Modes
+
+While running `python query.py`, you can use the following commands in the prompt:
+- `/sync` — Re-index documents without exiting.
+- `/mode [hybrid|semantic|keyword]` — Switch between search modes (default: `hybrid`).
+  - `hybrid`: Combines both conceptual and exact keyword matching.
+  - `semantic`: Embedding-based search for conceptual queries.
+  - `keyword`: Exact or partial word matching.
+- `exit`, `quit`, `q`, `bye` — Close the assistant.
+
+You can also pass arguments directly via CLI:
+```bash
+python query.py "Your question here"
+python query.py --sync
+python query.py --mode keyword
 ```
 
 ---
@@ -81,7 +101,7 @@ pm-rag/
 
 ## Re-indexing
 
-Run `python ingest.py` anytime you:
+Run `python ingest.py` (or type `/sync` in the interactive prompt) anytime you:
 - Add new documents to your folders
 - Update existing documents
 - Add new Google Drive folders to config
