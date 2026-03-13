@@ -22,3 +22,7 @@ pyyaml==6.0.2
 rich==13.9.4
 tqdm==4.67.1
 tiktoken==0.8.0
+
+# Dev tools
+pre-commit==3.7.1
+ruff==0.4.8

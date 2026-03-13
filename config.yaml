@@ -5,24 +5,15 @@
 local_folders:
   - path: "~/Documents/YOUR_FOLDER_HERE"
     recursive: true
-  # - path: "~/Desktop"
-  #   recursive: false
-  # - path: "~/Downloads"
-  #   recursive: false
-  # Add more paths as needed:
-  # - path: "~/Library/Mobile Documents/com~apple~CloudDocs"  # iCloud Drive
-  #   recursive: true
 
 # ─── Google Drive ─────────────────────────────────────────────────────────────
 google_drive:
-  enabled: false           # Set to true after completing GOOGLE_DRIVE_SETUP.md
+  enabled: true           # Set to true after completing GOOGLE_DRIVE_SETUP.md
   credentials_file: "credentials.json"
   token_file: "token.json"
   folders:
-    - name: "All My Drive"   # Syncs everything, or specify folder IDs below
-      id: "root"
-    # - name: "PM Documents"
-    #   id: "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs"  # Get ID from Drive URL
+    - name: "PMPMPM"
+      id: "abcdefghijklmnopqrstuvwxyz"  # Get ID from Drive URL
 
 # ─── File Types to Index ──────────────────────────────────────────────────────
 file_types:
@@ -68,7 +59,7 @@ llm:
   model: "claude-sonnet-4-20250514"
   # model: "gpt-4o"
   max_tokens: 2048
-  temperature: 0          # 0 = fully deterministic, no creative guessing
+  temperature: 0.2          # 0 = fully deterministic, no creative guessing
 
   # Uncomment if switching to OpenAI:
   # provider: "openai"

@@ -1,0 +1,18 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-ast      # Simply checks whether the files parse as valid python.
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.8
+    hooks:
+      # Run the linter to catch syntax/logical errors and auto-fix what it can
+      - id: ruff
+        args: [ --fix ]
+      # Run the formatter to auto-format code
+      - id: ruff-format

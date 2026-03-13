@@ -217,6 +217,12 @@ def fetch_google_drive_docs(config: dict, since: Optional[str] = None) -> List[d
         mime_filter = " or ".join(f"mimeType = '{m}'" for m in all_mimes)
         query = f"trashed = false and ({mime_filter})"
 
+        # Filter by folder IDs if specified (and not 'root' which implies all)
+        folder_ids = [f.get("id") for f in drive_cfg.get("folders", []) if f.get("id") and f.get("id") != "root"]
+        if folder_ids:
+            folder_filter = " or ".join(f"'{fid}' in parents" for fid in folder_ids)
+            query += f" and ({folder_filter})"
+
         # ── KEY: Tell Drive API to only return files changed since last sync ──
         if since:
             query += f" and modifiedTime > '{since}'"
