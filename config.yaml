@@ -55,11 +55,14 @@ exclude_patterns:
 
 # ─── LLM Settings ─────────────────────────────────────────────────────────────
 llm:
-  provider: "anthropic"   # Options: anthropic | openai | ollama
-  model: "claude-sonnet-4-20250514"
-  # model: "gpt-4o"
+  # provider: "anthropic"   # Options: anthropic | openai | ollama | gemini
+  # model: "claude-sonnet-4-20250514"
   max_tokens: 2048
   temperature: 0.2          # 0 = fully deterministic, no creative guessing
+
+  # Uncomment if switching to Gemini:
+  provider: "gemini"
+  model: "gemini-2.5-flash"
 
   # Uncomment if switching to OpenAI:
   # provider: "openai"

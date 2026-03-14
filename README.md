@@ -115,4 +115,5 @@ The system uses content hashing — unchanged files are skipped automatically.
 In `config.yaml`, change the `llm` section:
 - `anthropic` — Claude (default, best for long docs)
 - `openai` — GPT-4o
+- `gemini` — Google Gemini (gemini-2.5-flash, gemini-2.5-pro, etc.)
 - `ollama` — Free local model (no API key needed)

@@ -383,6 +383,17 @@ def ask_ollama(prompt: str, config: dict) -> str:
     )
     return resp.json()["response"]
 
+def ask_gemini(prompt: str, config: dict) -> str:
+    import google.generativeai as genai
+    genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+    llm = config["llm"]
+    model = genai.GenerativeModel(
+        model_name=llm.get("model", "gemini-2.5-flash"),
+        generation_config={"temperature": llm.get("temperature", 0)}
+    )
+    response = model.generate_content(prompt)
+    return response.text
+
 def get_answer(question: str, chunks: List[Tuple[str, str, float, str]], config: dict) -> str:
     prompt = build_prompt(question, chunks)
     provider = config["llm"].get("provider", "anthropic")
@@ -392,6 +403,8 @@ def get_answer(question: str, chunks: List[Tuple[str, str, float, str]], config:
         return ask_openai(prompt, config)
     elif provider == "ollama":
         return ask_ollama(prompt, config)
+    elif provider == "gemini":
+        return ask_gemini(prompt, config)
     else:
         raise ValueError(f"Unknown LLM provider: {provider}")
 
@@ -514,6 +527,9 @@ def main():
         sys.exit(1)
     if provider == "openai" and not os.environ.get("OPENAI_API_KEY"):
         console.print("[red]❌ OPENAI_API_KEY not set in .env[/red]")
+        sys.exit(1)
+    if provider == "gemini" and not os.environ.get("GEMINI_API_KEY"):
+        console.print("[red]❌ GEMINI_API_KEY not set in .env[/red]")
         sys.exit(1)
 
     if args.sync:
